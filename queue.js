@@ -17,10 +17,22 @@ Queue.prototype.add = function(customer) {
   customer.wasQueued = true;
   customer.queuedAt = this.simulation.clock;
   this.queue.push(customer);
+
+  emit('queueSizeChanged', {
+    'size': this.size(),
+    'time': simulation.clock
+  });
 };
 
 Queue.prototype.remove = function() {
-  return this.queue.splice(0, 1);
+  var customer = this.queue.splice(0, 1);
+
+  emit('queueSizeChanged', {
+    'size': this.size(),
+    'time': simulation.clock
+  });
+
+  return customer;
 };
 
 Queue.prototype.generateNextArrival = function() {

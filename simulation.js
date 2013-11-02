@@ -9,6 +9,7 @@ Simulation.prototype.init = function() {
   this.servers = [];
   this.events = [];
   this.clock = 0.0;
+  this.numInSystem = 0;
 
   this.events.push(this.queue.arrivalEvent);
 
@@ -33,15 +34,23 @@ Simulation.prototype.simulate = function(stoppingCondition) {
 };
 
 Simulation.prototype.handleArrival = function(e) {
-  console.log('arrival at ' + this.clock);
   var server = this.firstOpenServer();
   var customer = new Customer(this.clock);
+  this.numInSystem++;
+
+  emit('numInSystemChanged', {
+    'num': this.numInSystem,
+    'time': simulation.clock
+  });
+
+  emit('customerArrival', {
+    'time': simulation.clock
+  });
+
   if (server) {
-    console.log('sending to server');
     server.occupy(customer);
     server.generateNextDeparture();
   } else {
-    console.log('queueing');
     this.queue.add(customer);
   }
   this.queue.generateNextArrival();
@@ -50,7 +59,17 @@ Simulation.prototype.handleArrival = function(e) {
 Simulation.prototype.handleDeparture = function(e) {
   var server = e.data;
   server.leave();
-  console.log('departure at ' + this.clock);
+  this.numInSystem--;
+
+  emit('numInSystemChanged', {
+    'num': this.numInSystem,
+    'time': simulation.clock
+  });
+
+  emit('customerDeparture', {
+    'time': simulation.clock
+  });
+
   if (this.queue.size() > 0) {
     server.occupy(this.queue.remove());
     server.generateNextDeparture();

@@ -6,6 +6,7 @@
     <script src="queue.js"></script>
     <script src="customer.js"></script>
     <script src="event.js"></script>
+    <script src="pubsub.js"></script>
   </head>
   <body>
     <script>
@@ -14,6 +15,22 @@
           return Math.random();
         }
       };
+
+      on('queueSizeChanged', function(e) {
+        console.log('queue size changed to ' + e.size + ' at time ' + e.time);
+      });
+
+      on('customerArrival', function(e) {
+        console.log('customer arrived at ' + e.time);
+      });
+
+      on('customerDeparture', function(e) {
+        console.log('customer departed at ' + e.time);
+      });
+
+      on('numInSystemChanged', function(e) {
+        console.log('num in system changed to ' + e.num + ' at time ' + e.time);
+      });
 
       var simulation = new Simulation(uniformRng, uniformRng, 2);
       simulation.simulate(function(simulation) {
