@@ -1,0 +1,24 @@
+<!doctype html>
+<html>
+  <head>
+    <script src="simulation.js"></script>
+    <script src="server.js"></script>
+    <script src="queue.js"></script>
+    <script src="customer.js"></script>
+    <script src="event.js"></script>
+  </head>
+  <body>
+    <script>
+      var uniformRng = {
+        next: function() {
+          return Math.random();
+        }
+      };
+
+      var simulation = new Simulation(uniformRng, uniformRng, 2);
+      simulation.simulate(function(simulation) {
+        return simulation.clock > 100.0;
+      });
+    </script>
+  </body>
+</html>
