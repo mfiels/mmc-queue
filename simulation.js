@@ -2,6 +2,7 @@ var Simulation = function(interarrivalRng, serviceRng, numServers) {
   this.interarrivalRng = interarrivalRng;
   this.serviceRng = serviceRng;
   this.numServers = numServers;
+  this.emitter = new Emitter();
 };
 
 Simulation.prototype.init = function() {
@@ -9,12 +10,13 @@ Simulation.prototype.init = function() {
   this.servers = [];
   this.events = [];
   this.clock = 0.0;
-  this.numInSystem = 0;
+  this.inSystem = 0;
+  this.serviced = 0;
 
   this.events.push(this.queue.arrivalEvent);
 
   for (var i = 0; i < this.numServers; i++) {
-    var server = new Server(this, this.serviceRng);
+    var server = new Server(this, i, this.serviceRng);
     this.servers.push(server);
     this.events.push(server.departureEvent);
   }
@@ -28,7 +30,6 @@ Simulation.prototype.simulate = function(stoppingCondition) {
   while (!stoppingCondition(this)) {
     var e = this.nextEvent();
     this.clock = e.time;
-
     e.handleEvent.call(this, e);
   }
 };
@@ -36,44 +37,40 @@ Simulation.prototype.simulate = function(stoppingCondition) {
 Simulation.prototype.handleArrival = function(e) {
   var server = this.firstOpenServer();
   var customer = new Customer(this.clock);
-  this.numInSystem++;
-
-  emit('numInSystemChanged', {
-    'num': this.numInSystem,
-    'time': simulation.clock
-  });
-
-  emit('customerArrival', {
-    'time': simulation.clock
-  });
+  this.inSystem++;
 
   if (server) {
     server.occupy(customer);
-    server.generateNextDeparture();
   } else {
     this.queue.add(customer);
   }
+
+  this.emitter.emit('customerArrived', {
+    'time': simulation.clock,
+    'inSystem': this.inSystem,
+    'queueSize': this.queue.size(),
+    'customer': customer
+  });
+
   this.queue.generateNextArrival();
 };
 
 Simulation.prototype.handleDeparture = function(e) {
   var server = e.data;
-  server.leave();
-  this.numInSystem--;
-
-  emit('numInSystemChanged', {
-    'num': this.numInSystem,
-    'time': simulation.clock
-  });
-
-  emit('customerDeparture', {
-    'time': simulation.clock
-  });
+  var customer = server.leave();
+  this.inSystem--;
+  this.serviced++;
 
   if (this.queue.size() > 0) {
     server.occupy(this.queue.remove());
-    server.generateNextDeparture();
   }
+
+  this.emitter.emit('customerDeparted', {
+    'time': simulation.clock,
+    'inSystem': this.inSystem,
+    'serviced': this.serviced,
+    'customer': customer
+  });
 };
 
 Simulation.prototype.firstOpenServer = function() {

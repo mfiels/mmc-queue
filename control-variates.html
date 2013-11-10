@@ -1,0 +1,72 @@
+<!doctype html>
+<html>
+  <head>
+    <script src="http://ajax.googleapis.com/ajax/libs/jquery/1.10.2/jquery.min.js"></script>
+  </head>
+  <body>
+    <script src="simulation.js"></script>
+    <script src="server.js"></script>
+    <script src="queue.js"></script>
+    <script src="customer.js"></script>
+    <script src="event.js"></script>
+    <script src="emitter.js"></script>
+    <script src="rng.js"></script>
+    <script src="csv.js"></script>
+    <script>
+      var interrarivalSeed = 1155192168;
+      var serviceSeed = 1806794933;
+
+      var interarrivalRng = new ExpRng(5.0, new LcgRng(16807, 2147483647, interrarivalSeed));
+      var serviceRng = new ExpRng(4.0, new LcgRng(16807, 2147483647, serviceSeed));
+      var simulation = new Simulation(interarrivalRng, serviceRng, 2);
+
+      function terminateCondition(simulation) {
+        if (simulation.clock >= 8 * 60) {
+          simulation.queue.arrivalEvent.time = Number.MAX_VALUE;
+        }
+        return simulation.clock >= 8 * 60 && simulation.queue.size() == 0;
+      }
+
+      var delays = [];
+      var services = [];
+      simulation.emitter.on('customerDeparted', function(e) {
+        delays.push(e.customer.queuedFor);
+        services.push(e.customer.servicedFor);
+        console.log(e.customer.queuedFor, e.customer.servicedFor);
+      });
+
+      for (var i = 0; i < 50; i++) {
+        simulation.simulate(terminateCondition);
+
+        interrarivalSeed += 100000;
+        serviceSeed += 100000;
+
+        interarrivalRng.rng.last = interrarivalSeed;
+        serviceRng.rng.last = serviceSeed;
+        averageDelay = 0.0;
+
+        // Calculate statistics
+        var averageDelay = 0.0;
+        for (var j = 0; j < delays.length; j++) {
+          averageDelay += delays[j] * (1 / delays.length);
+        }
+        var cov = 0.0;
+        for (var j = 0; j < delays.length; j++) {
+          cov += (delays[j] - averageDelay) * (services[j] - 4.0) / (delays.length - 1);
+        }
+
+        var stats = [];
+        for (var j = 0; j < delays.length; j++) {
+          stats.push(delays[j] - cov / 4.0 * (services[j] - 4.0));
+        }
+
+        CSV.delays.push(stats);
+
+        delays = [];
+        services = [];
+      }
+
+      CSV.write();
+    </script>
+  </body>
+</html>

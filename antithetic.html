@@ -1,0 +1,87 @@
+<!doctype html>
+<html>
+  <head>
+    <script src="http://ajax.googleapis.com/ajax/libs/jquery/1.10.2/jquery.min.js"></script>
+  </head>
+  <body>
+    <script src="simulation.js"></script>
+    <script src="server.js"></script>
+    <script src="queue.js"></script>
+    <script src="customer.js"></script>
+    <script src="event.js"></script>
+    <script src="emitter.js"></script>
+    <script src="rng.js"></script>
+    <script src="csv.js"></script>
+    <script>
+      var interrarivalSeed = 1155192168;
+      var serviceSeed = 1806794933;
+
+      var interarrivalRng = new ExpRng(5.0, new AntitheticRng(new LcgRng(16807, 2147483647, interrarivalSeed)));
+      var serviceRng = new ExpRng(4.0, new AntitheticRng(new LcgRng(16807, 2147483647, serviceSeed)));
+      var simulation = new Simulation(interarrivalRng, serviceRng, 2);
+
+      function terminateCondition(simulation) {
+        if (simulation.clock >= 8 * 60) {
+          simulation.queue.arrivalEvent.time = Number.MAX_VALUE;
+        }
+        return simulation.clock >= 8 * 60 && simulation.queue.size() == 0;
+      }
+
+      CSV.listen(simulation);
+
+      var runA = [];
+      var runB = [];
+      var averaged = [];
+
+      for (var i = 0; i < 50 / 2; i++) {
+        // First run
+        interarrivalRng.rng.stream = [];
+        serviceRng.rng.stream = [];
+        simulation.interarrivalRng = interarrivalRng;
+        simulation.serviceRng = serviceRng;
+        simulation.simulate(terminateCondition);
+
+        runA = CSV.run;
+        CSV.run = [];
+
+        interrarivalSeed += 100000;
+        serviceSeed += 100000;
+
+        interarrivalRng.rng.rng.last = interrarivalSeed;
+        serviceRng.rng.rng.last = serviceSeed;
+
+        // Second run
+        simulation.interarrivalRng = new AntitheticComplimentRng(interarrivalRng, interarrivalRng.rng.stream);
+        simulation.serviceRng = new AntitheticComplimentRng(serviceRng, serviceRng.rng.stream);
+        simulation.simulate(terminateCondition);
+
+        runB = CSV.run;
+        CSV.run = [];
+
+        interrarivalSeed += 100000;
+        serviceSeed += 100000;
+
+        interarrivalRng.rng.rng.last = interrarivalSeed;
+        serviceRng.rng.rng.last = serviceSeed;
+
+        // Average them
+        for (var j = 0; j < Math.max(runA.length, runB.length); j++) {
+          var a = runA.length > j ? runA[j] : NaN;
+          var b = runB.length > j ? runB[j] : NaN;
+          if (!isNaN(a) && !isNaN(b)) {
+            averaged.push((a + b) / 2);
+          } else if (isNaN(a)) {
+            averaged.push(b);
+          } else {
+            averaged.push(a);
+          }
+        }
+
+        CSV.delays.push(averaged);
+        averaged = [];
+      }
+
+      CSV.write();
+    </script>
+  </body>
+</html>
