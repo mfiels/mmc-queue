@@ -23,7 +23,11 @@ var ExpRng = function(avg, rng) {
 };
 
 ExpRng.prototype.next = function() {
-  return -this.avg * Math.log(this.rng.next());
+  return this.fromUniform(this.rng.next());
+};
+
+ExpRng.prototype.fromUniform = function(u) {
+  return -this.avg * Math.log(u);
 };
 
 var AntitheticRng = function(rng) {
@@ -46,10 +50,10 @@ var AntitheticComplimentRng = function(rng, stream) {
 AntitheticComplimentRng.prototype.next = function() {
   var val;
   if (this.i < this.stream.length) {
-    val = 1 - this.stream[this.i];
+    val = this.rng.fromUniform(1 - this.stream[this.i]);
     this.i++;
   } else {
-    val = this.rng.rng.next();
+    val = this.rng.fromUniform(1 - this.rng.rng.next());
   }
   return val;
 };
