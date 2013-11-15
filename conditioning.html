@@ -32,7 +32,7 @@
         data.push(e.queueSize >= 2 ? 2 * (e.inSystem - 2) : 0.0);
       });
 
-      for (var i = 0; i < 50; i++) {
+      for (var i = 0; i < 500; i++) {
         simulation.simulate(terminateCondition);
 
         interrarivalSeed += 100000;

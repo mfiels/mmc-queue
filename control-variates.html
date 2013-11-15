@@ -1,7 +1,7 @@
 <!doctype html>
 <html>
   <head>
-    <script src="http://ajax.googleapis.com/ajax/libs/jquery/1.10.2/jquery.min.js"></script>
+    
   </head>
   <body>
     <script src="simulation.js"></script>
@@ -32,10 +32,9 @@
       simulation.emitter.on('customerDeparted', function(e) {
         delays.push(e.customer.queuedFor);
         services.push(e.customer.servicedFor);
-        console.log(e.customer.queuedFor, e.customer.servicedFor);
       });
 
-      for (var i = 0; i < 50; i++) {
+      for (var i = 0; i < 5; i++) {
         simulation.simulate(terminateCondition);
 
         interrarivalSeed += 100000;
@@ -54,11 +53,18 @@
         for (var j = 0; j < delays.length; j++) {
           cov += (delays[j] - averageDelay) * (services[j] - 4.0) / (delays.length - 1);
         }
+        var v = 0.0;
+        for (var j = 0; j < services.length; j++) {
+          v += Math.pow(services[j] - 4, 2.0) / services.length;
+        }
 
         var stats = [];
         for (var j = 0; j < delays.length; j++) {
-          stats.push(delays[j] - cov / 4.0 * (services[j] - 4.0));
+          stats.push(delays[j] - cov / v * (services[j] - 4.0));
         }
+
+        console.log(averageDelay + ' ' + cov + ' ' + v);
+        console.log(delays.length + ' ' + services.length);
 
         CSV.delays.push(stats);
 
