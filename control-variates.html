@@ -34,7 +34,7 @@
         services.push(e.customer.servicedFor);
       });
 
-      for (var i = 0; i < 5; i++) {
+      for (var i = 0; i < 500; i++) {
         simulation.simulate(terminateCondition);
 
         interrarivalSeed += 100000;
@@ -62,9 +62,6 @@
         for (var j = 0; j < delays.length; j++) {
           stats.push(delays[j] - cov / v * (services[j] - 4.0));
         }
-
-        console.log(averageDelay + ' ' + cov + ' ' + v);
-        console.log(delays.length + ' ' + services.length);
 
         CSV.delays.push(stats);
 
