@@ -17,11 +17,13 @@
       var serviceRng = new ExpRng(4.0, new LcgRng(16807, 2147483647, serviceSeed));
       var simulation = new Simulation(interarrivalRng, serviceRng, 2);
 
-      function terminateCondition(simulation) {
-        if (simulation.clock >= 8 * 60) {
-          simulation.queue.arrivalEvent.time = Number.MAX_VALUE;
-        }
-        return simulation.clock >= 8 * 60 && simulation.queue.size() == 0;
+      function terminationConditionFor(hours) {
+        return function(simulation) {
+          if (simulation.clock >= hours * 60) {
+            simulation.queue.arrivalEvent.time = Number.MAX_VALUE;
+          }
+          return simulation.clock >= hours * 60 && simulation.queue.size() == 0;
+        };
       }
 
       var delays = [];
@@ -32,16 +34,12 @@
       });
 
       for (var i = 0; i < 500; i++) {
-        simulation.simulate(terminateCondition);
+        // 2 hour pilot run
+        simulation.simulate(terminationConditionFor(2));
 
-        interrarivalSeed += 100000;
-        serviceSeed += 100000;
-
-        interarrivalRng.rng.last = interrarivalSeed;
-        serviceRng.rng.last = serviceSeed;
         averageDelay = 0.0;
 
-        // Calculate statistics
+        // Calculate a*
         var averageDelay = 0.0;
         for (var j = 0; j < delays.length; j++) {
           averageDelay += delays[j] * (1 / delays.length);
@@ -55,15 +53,28 @@
           v += Math.pow(services[j] - 4, 2.0) / services.length;
         }
 
+        var aStar = cov / v;
+
+        // 8 hour regular run
+        delays = [];
+        services = [];
+        simulation.simulate(terminationConditionFor(8));
+
         var stats = [];
         for (var j = 0; j < delays.length; j++) {
-          stats.push(delays[j] - cov / v * (services[j] - 4.0));
+          stats.push(delays[j] - aStar * (services[j] - 4.0));
         }
 
         CSV.delays.push(stats);
 
         delays = [];
         services = [];
+
+        interrarivalSeed += 100000;
+        serviceSeed += 100000;
+
+        interarrivalRng.rng.last = interrarivalSeed;
+        serviceRng.rng.last = serviceSeed;
       }
 
       CSV.write();
